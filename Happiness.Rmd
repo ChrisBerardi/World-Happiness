@@ -1,0 +1,47 @@
+---
+title: "Happiness"
+author: "Christian Berardi"
+date: "October 10, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+##Data Exploration
+```{r}
+data <- X2017
+#Rename the column names to something shorter and more meaningful
+colnames(data) <- c("Country", "Rank", "Happiness","Whisker H", "Whisker L", "Economy", "Family", "Health", "Freedom"
+                    , "Generosity", "Trust", "Dystopia")
+#Remove rank, wiskers from data, dystopia
+happy <- cbind(data[,1],data[,3],data[,6:11])
+plot(happy[,-1])
+cor(happy[,-1])
+```
+###Correlation Between Predictors
+The plot above shows clear evidence of high correlation between multiple predictors. For that reason controlling multicolinearity will need to be a focus when modeling the data. 
+
+
+##Unstructed Learning
+```{r}
+#Do PCA and clustering to get a better handle on the relationship between the predictors and happiness
+pca <- princomp(happy[,3:length(happy)]) #Since vars are not standardized used cor=TRUE
+pca$loadings
+summary(pca)
+eigs <- pca$sdev^2
+prop <- eigs/sum(eigs)
+plot(prop, xlab="Number of Component", ylab="Proportion of Variance Explained") #So only 1 needed, now interpret
+
+happy_h <-hclust(dist(happy[,3:length(happy)]), method="complete")
+happy_h$labels <-happy[,1]
+png(file="Dendrogram_plot.png", width=10, height=24, units="in", res=288)
+par(mar=c(2,2,2,10))
+plot(as.dendrogram(happy_h), horiz=T)
+dev.off()
+
+```
+###Principle Component Analysis
+
+###Hierarchical Clustering
