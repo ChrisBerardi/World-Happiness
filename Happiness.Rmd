@@ -7,33 +7,86 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+library(scatterplot3d)
 ```
 
+##Background
+Add in stuff about the survey etc. describe the data and the predictors as well as the target
+
+\pagebreak
+
 ##Data Exploration
+In order to better understand the relationship between the different predictors, as well as to be begin to be able to appropriately model the data, some basic statistics, as well as correlation, and the relationship between pairs of predictors will be explored. 
 ```{r}
-data <- X2017
+data <- read.csv("C:\\Users\\Saistout\\Desktop\\data\\2017.csv")
 #Rename the column names to something shorter and more meaningful
 colnames(data) <- c("Country", "Rank", "Happiness","Whisker H", "Whisker L", "Economy", "Family", "Health", "Freedom"
                     , "Generosity", "Trust", "Dystopia")
 #Remove rank, wiskers from data, dystopia
 happy <- cbind(data[,1],data[,3],data[,6:11])
-plot(happy[,-1])
-cor(happy[,-1])
+summary(happy)
 ```
+The data contains 155 different countries. Looking at the summary statistics calculated for each of the 6 predictors used in the report, none have missing values, nor do they have maximum values much greater than their 3rd quartile. For this reason no work need be done on data cleaning. This was expected of a data set from Kaggle.
+
+\pagebreak
+
 ###Correlation Between Predictors
+```{r}
+plot(happy[,-1])
+```
 The plot above shows clear evidence of high correlation between multiple predictors. For that reason controlling multicolinearity will need to be a focus when modeling the data. 
 
+\pagebreak
 
+```{r}
+cor(happy[,-1])
+```
+Looking further, we find the same issue when calculating the correlation between the predictors. The correlation between economy and health, as well as between
+
+To combat the multicolinearity, a number of different approaches with be attempted, including variable selection as well as modeling with principle components. 
+
+\pagebreak
 ##Unstructed Learning
+To obtain a better understanding of the relationship between the correlated predictors, as well as to discover outlier countries and cluster the countries of the world, principle component analysis, hierarchical clustering, k-means clustering and bi-plots were carried out. 
+
+###Principle Component Analysis
 ```{r}
 #Do PCA and clustering to get a better handle on the relationship between the predictors and happiness
-pca <- princomp(happy[,3:length(happy)]) #Since vars are not standardized used cor=TRUE
+pca <- princomp(happy[,3:length(happy)], cor=TRUE) #Since vars are not standardized used cor=TRUE
 pca$loadings
 summary(pca)
 eigs <- pca$sdev^2
 prop <- eigs/sum(eigs)
-plot(prop, xlab="Number of Component", ylab="Proportion of Variance Explained") #So only 1 needed, now interpret
+plot(prop, xlab="Number of Component", ylab="Proportion of Variance Explained") #So only 3 needed, now interpret
+```
+The skree plot indicates that 3 principle components(PC) needs to be interpreted. The first principle component (`r pca$loading[,1]`) indicated a weighted average of the different predictors. This gives us no special insight into their relationship. 
 
+The second PC (`r pca$loading[,2]`) is much more interesting. This PC is a contrast between economy, family and health on one hand and freedom, generosity and trust on the other. This can be interpreted as suggesting that there are two classes of predictors for this data, one I will call goodness of life predictors: economy, family and health, the other goodness of government: freedom, generosity and trust. This indicated that we must be very careful in selecting more than one predictor from each class.
+
+The final PC, `r pca$loading[,3]`, is another contrast, this time mixing the two classes that were identified from the second PC. The difference in classiication is for generosity.
+
+###Bi-Plot
+```{r}
+#Do a Biplot to start to look at more relationships between predictors
+biplot(pca)
+```
+To check the conclusions from the principle component analysis(PCA), a bi-plot was constructed. The bi-plot results are very similar to those seen from PCA, the goodness of life predictors are clustered, as are the goodness of government, with generosity further from the other two goodness of government measures.
+
+```{r}
+biplot(pca, xlabs=happy[,1])
+```
+A second bi-plot was constructed to determine which countries could be seen as outliers so that they could be better understood. We immediately see a number of countries which deserve further scrutiny: Myanmar, Rwanda, Somalia, Greece, Lithunaia, and Taiwan (hidden by the goodness of life predictors).
+
+####Myanmar
+Myanmar is ranked low, 114 out of 155. It's oulier nature is due to its much higher then expected generosity score-- it has the highest score.
+####Rwanda
+Rwanda is also ranked very low, 151 out of 155. It's outlier nature is due to its very high government score, the second highest. 
+####Somalia
+
+
+
+```{r}
+#hierarchical clustering
 happy_h <-hclust(dist(happy[,3:length(happy)]), method="complete")
 happy_h$labels <-happy[,1]
 png(file="Dendrogram_plot.png", width=10, height=24, units="in", res=288)
@@ -41,7 +94,35 @@ par(mar=c(2,2,2,10))
 plot(as.dendrogram(happy_h), horiz=T)
 dev.off()
 
+#k-means clustering
+happy_k <- kmeans(happy[,3:length(happy)], 3)
+#calculate the first 3 PC
+pcc1 = as.matrix(happy[,3:length(happy)]) %*% pca$loadings[,1]
+pcc2 = as.matrix(happy[,3:length(happy)]) %*% pca$loadings[,2]
+pcc3 = as.matrix(happy[,3:length(happy)]) %*% pca$loadings[,3]
+#Create a matrix with the PCs and the component membership number
+PCs=cbind(pcc1,pcc2,pcc3, happy_k$cluster)
+
+#Plots the first three PCs by cluster with different colors
+cluster_1 <- PCs[PCs[,4]==1,]
+cluster_2 <- PCs[PCs[,4]==2,]
+cluster_3 <- PCs[PCs[,4]==3,]
+splt <- scatterplot3d(cluster_1[,1],cluster_1[,2],cluster_1[,3], xlab="PC1", ylab="PC2", zlab="PC3", color = "blue",
+                      xlim=c(-2.5,0),ylim=c(-1,1),zlim=c(.2,-.6))
+splt$points3d(cluster_2[,1],cluster_2[,2],cluster_2[,3], col="red")
+splt$points3d(cluster_3[,1],cluster_3[,2],cluster_3[,3], col="green")
+
+#Put the clusters in as a variable in a new data set to be used in visualizations in tableau
 ```
-###Principle Component Analysis
+
 
 ###Hierarchical Clustering
+
+###K-Means Clustering
+
+##Structured Learning
+```{r}
+#Fit 3 models: linear regression with stepwise selection, random forest and SVM, do LOOCV to determine optimum model
+# compare models based on AIC and BIC to select the optimum model, interpret results in light of how to get the
+# happiest country
+```
