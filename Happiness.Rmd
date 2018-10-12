@@ -1,5 +1,5 @@
 ---
-title: "Happiness"
+title: "World Happiness Survey Analysis"
 author: "Christian Berardi"
 date: "October 10, 2018"
 output: pdf_document
@@ -18,7 +18,7 @@ Add in stuff about the survey etc. describe the data and the predictors as well 
 ##Data Exploration
 In order to better understand the relationship between the different predictors, as well as to be begin to be able to appropriately model the data, some basic statistics, as well as correlation, and the relationship between pairs of predictors will be explored. 
 ```{r}
-data <- read.csv("C:\\Users\\Saistout\\Desktop\\data\\2017.csv")
+data <- read.csv("2017.csv")
 #Rename the column names to something shorter and more meaningful
 colnames(data) <- c("Country", "Rank", "Happiness","Whisker H", "Whisker L", "Economy", "Family", "Health", "Freedom"
                     , "Generosity", "Trust", "Dystopia")
@@ -59,11 +59,11 @@ eigs <- pca$sdev^2
 prop <- eigs/sum(eigs)
 plot(prop, xlab="Number of Component", ylab="Proportion of Variance Explained") #So only 3 needed, now interpret
 ```
-The skree plot indicates that 3 principle components(PC) needs to be interpreted. The first principle component (`r pca$loading[,1]`) indicated a weighted average of the different predictors. This gives us no special insight into their relationship. 
+The scree plot indicates that 3 principle components(PC) needs to be interpreted. The first principle component (`r pca$loading[,1]`) indicated a weighted average of the different predictors. This gives us no special insight into their relationship. 
 
 The second PC (`r pca$loading[,2]`) is much more interesting. This PC is a contrast between economy, family and health on one hand and freedom, generosity and trust on the other. This can be interpreted as suggesting that there are two classes of predictors for this data, one I will call goodness of life predictors: economy, family and health, the other goodness of government: freedom, generosity and trust. This indicated that we must be very careful in selecting more than one predictor from each class.
 
-The final PC, `r pca$loading[,3]`, is another contrast, this time mixing the two classes that were identified from the second PC. The difference in classiication is for generosity.
+The final PC, `r pca$loading[,3]`, is another contrast, this time mixing the two classes that were identified from the second PC. The difference in classification is for generosity.
 
 ###Bi-Plot
 ```{r}
@@ -75,25 +75,48 @@ To check the conclusions from the principle component analysis(PCA), a bi-plot w
 ```{r}
 biplot(pca, xlabs=happy[,1])
 ```
-A second bi-plot was constructed to determine which countries could be seen as outliers so that they could be better understood. We immediately see a number of countries which deserve further scrutiny: Myanmar, Rwanda, Somalia, Greece, Lithunaia, and Taiwan (hidden by the goodness of life predictors).
+A second bi-plot was constructed to determine which countries could be seen as outliers so that they could be better understood. We immediately see a number of countries which deserve further scrutiny: Myanmar, Rwanda, Somalia, Greece, Lithuania, and Taiwan (hidden by the goodness of life predictors).
 
 ####Myanmar
-Myanmar is ranked low, 114 out of 155. It's oulier nature is due to its much higher then expected generosity score-- it has the highest score.
+Myanmar is ranked low, 114 out of 155. Its outlier nature is due to its much higher then expected generosity score given its happiness-- it has the highest score. The most likely explanation for this discrepancy is the highly Therevadan Buddhist nature of the majority Bamar ethnic group. 
+
 ####Rwanda
-Rwanda is also ranked very low, 151 out of 155. It's outlier nature is due to its very high government score, the second highest. 
+Rwanda is also ranked very low, 151 out of 155. It's outlier nature is due to its very high government score given its happiness, the second highest. This is most likely due to the after effects of the Rwandan genocide, and the extreme changes it brought to the Rwandan government.
+
 ####Somalia
+Somalia is ranked near the middle in terms of happiness, 93. However, Somalia's economy score is second to last, which would usually indicate an extremely low happiness rating. The reason for this difference is most likely the continued factional nature of the Somali state.
 
+####Greece
+Greece has a middling happiness level, ranked 87, which is in sharp contrast to its generosity, ranked last, which would usually indicate a much lower happiness. This is most likely a consequence of the continued financial instability of the country.
 
+####Lithuania
+Lithuania is ranked in the top third of countries, which is surprising give its low generosity score, only slightly higher than Greece's. This would normally indicate a much less happy nation. Lithuania, like Greece, also recently went through financial instability.
 
+####Taiwan
+Taiwan is near the top of the rankings in terms of happiness, ranked 33. However its low freedom score would normally be associated with a much lower happiness. 
+
+###Hierarchical Clustering
 ```{r}
 #hierarchical clustering
 happy_h <-hclust(dist(happy[,3:length(happy)]), method="complete")
-happy_h$labels <-happy[,1]
-png(file="Dendrogram_plot.png", width=10, height=24, units="in", res=288)
-par(mar=c(2,2,2,10))
-plot(as.dendrogram(happy_h), horiz=T)
-dev.off()
+happy_h$labels <-happy
+#Comment out to prevent stray output in pdf
+#png(file="Dendrogram_plot.png", width=10, height=24, units="in", res=288)
+#par(mar=c(2,2,2,10))
+#plot(as.dendrogram(happy_h), horiz=T)
+#dev.off()
+```
+![](dendrogram_plot.png)
+\pagebreak
 
+Hierarchical Clustering (HC) was done to better understand the relationship between the different countries, that is, to see if there was some way to classify the countries based on their predictor values. To that end complete clustering was done which produced the dendrogram seen on the previous page.
+
+Interpreting the results, it is the second split that is most meaningful. This splits the countries into three groups: those with very low happiness, the first branch from the bottom, those with high happiness, the second branch, and those with middle happiness, the top branch. 
+
+This 3-way split corresponds, in some way, to the old Cold War, 3 world classification. However, it should be noted that the "3^rd^ world" has greatly shrunk, while the 2^nd^ world previously the domain of communist regimes, has now become the most numerous. The 1st world has also increased in size. 
+
+###K-Means Clustering
+```{r}
 #k-means clustering
 happy_k <- kmeans(happy[,3:length(happy)], 3)
 #calculate the first 3 PC
@@ -114,11 +137,11 @@ splt$points3d(cluster_3[,1],cluster_3[,2],cluster_3[,3], col="green")
 
 #Put the clusters in as a variable in a new data set to be used in visualizations in tableau
 ```
+This division of the data into 3 parts is consistent with the results from PCA as well as HC indicates there is some evidence in the data of a tripartite division in the world. For this reason, K-means clustering was done with a cluster number of 3. 
 
+The plot above shows the results of this clustering. Further visualization and interpretation of the cluster will done using Tableau
 
-###Hierarchical Clustering
-
-###K-Means Clustering
+\pagebreak
 
 ##Structured Learning
 ```{r}
@@ -126,3 +149,4 @@ splt$points3d(cluster_3[,1],cluster_3[,2],cluster_3[,3], col="green")
 # compare models based on AIC and BIC to select the optimum model, interpret results in light of how to get the
 # happiest country
 ```
+
