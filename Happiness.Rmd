@@ -8,6 +8,9 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library(scatterplot3d)
+library(glmnet)
+library(randomForest)
+library(e1071)
 ```
 
 ##Background
@@ -19,11 +22,12 @@ Add in stuff about the survey etc. describe the data and the predictors as well 
 In order to better understand the relationship between the different predictors, as well as to be begin to be able to appropriately model the data, some basic statistics, as well as correlation, and the relationship between pairs of predictors will be explored. 
 ```{r}
 data <- read.csv("2017.csv")
-#Rename the column names to something shorter and more meaningful
-colnames(data) <- c("Country", "Rank", "Happiness","Whisker H", "Whisker L", "Economy", "Family", "Health", "Freedom"
-                    , "Generosity", "Trust", "Dystopia")
+
 #Remove rank, wiskers from data, dystopia
 happy <- cbind(data[,1],data[,3],data[,6:11])
+#Rename the column names to something shorter and more meaningful
+colnames(happy) <-c("Country", "Happiness", "Economy", "Family", "Health", "Freedom"
+                    , "Generosity", "Trust" )
 summary(happy)
 ```
 The data contains 155 different countries. Looking at the summary statistics calculated for each of the 6 predictors used in the report, none have missing values, nor do they have maximum values much greater than their 3rd quartile. For this reason no work need be done on data cleaning. This was expected of a data set from Kaggle.
@@ -136,6 +140,9 @@ splt$points3d(cluster_2[,1],cluster_2[,2],cluster_2[,3], col="red")
 splt$points3d(cluster_3[,1],cluster_3[,2],cluster_3[,3], col="green")
 
 #Put the clusters in as a variable in a new data set to be used in visualizations in tableau
+country_clusters <- cbind(happy[,1], happy_k$cluster)
+colnames(country_clusters) <- c("Country","Cluster")
+write.csv(country_clusters, file="clusters2017.csv")
 ```
 This division of the data into 3 parts is consistent with the results from PCA as well as HC indicates there is some evidence in the data of a tripartite division in the world. For this reason, K-means clustering was done with a cluster number of 3. 
 
@@ -145,8 +152,41 @@ The plot above shows the results of this clustering. Further visualization and i
 
 ##Structured Learning
 ```{r}
-#Fit 3 models: linear regression with stepwise selection, random forest and SVM, do LOOCV to determine optimum model
-# compare models based on AIC and BIC to select the optimum model, interpret results in light of how to get the
-# happiest country
+#Since muilticolinearity is an issue, fit 3 models that can help deal with it: linear regression with the LASSO, #random forest and SVM, do LOOCV to determine optimum model compare models based on AIC and BIC to select the optimum # model, interpret results in light of how to get the happiest country
+#Set the number of Train/Test iterations to do
+its<-1000
 ```
 
+###Regression
+```{r}
+#Use the LASSO to help mitigate multicolinearity
+
+```
+###Random Forest
+```{r}
+#Do 1000 70/30 train test splits, average over results to get an idea of ASE
+#Create containers for MSE and importance
+forest_MSE <- vector(length=its)
+forest_importance <- matrix(nrow=its, ncol=length(happy[,3:length(happy)]))
+colnames(forest_importance) <- c("Economy", "Family", "Health", "Freedom"
+                    , "Generosity", "Trust")
+for (i in 1:its){
+  index <- sample(length(happy[,1]), size=length(happy[,1])*.7)
+  train_x <- happy[index,3:length(happy)]
+  train_y <- happy[index,2]
+  test_x <- happy[-index,3:length(happy)]
+  test_y <- happy[-index,2]
+  forest <- randomForest(x=train_x ,y=train_y, xtest=test_x, ytest=test_y,ntree=500, importance=TRUE)
+  forest_MSE[i] <- mean(forest$mse)
+  forest_importance[i,] <- forest$importance[,1]
+}
+mean(forest_MSE)
+sd(forest_MSE)
+apply(forest_importance, 2, mean)
+apply(forest_importance, 2, sd)
+```
+
+###Support Vectorm Machine
+```{r}
+
+```
