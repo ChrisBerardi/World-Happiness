@@ -152,7 +152,11 @@ The plot above shows the results of this clustering. Further visualization and i
 
 ##Structured Learning
 ```{r}
-#Since muilticolinearity is an issue, fit 3 models that can help deal with it: linear regression with the LASSO, #random forest and SVM, do LOOCV to determine optimum model compare models based on AIC and BIC to select the optimum # model, interpret results in light of how to get the happiest country
+#Since muilticolinearity is an issue, fit 3 models that can help deal with it: linear regression with the LASSO, #random forest and SVM, do LOOCV to determine optimum model compare models based on MSE to select the optimum # model, interpret results in light of how to get the happiest country
+
+#Implement hyperparamter optimization after implementing train/test splitting
+#Implmented overfitting check
+
 #Set the number of Train/Test iterations to do
 its<-1000
 ```
@@ -160,13 +164,43 @@ its<-1000
 ###Regression
 ```{r}
 #Use the LASSO to help mitigate multicolinearity
+lasso_MSE <- matrix(ncol = 2, nrow=its)
+colnames(lasso_MSE) <- c("Train", "Test")
 
+#Use cv.glmnet to find optimum tuning parameter lambda with 5-fold cross validation
+lasso_5fold <- cv.glmnet(as.matrix(happy[,3:length(happy)]), happy[,2],nfold=5, family='gaussian')
+plot(lasso_5fold$lambda,lasso_5fold$cvm)
+#Record optimum lambda
+lambda <- lasso_5fold$lambda.min
+
+for (i in 1:its){
+  index <- sample(length(happy[,1]), size=length(happy[,1])*.7)
+  train_x <- happy[index,3:length(happy)]
+  train_y <- happy[index,2]
+  test_x <- happy[-index,3:length(happy)]
+  test_y <- happy[-index,2]
+  lasso <- glmnet(as.matrix(train_x),train_y, family="gaussian", lambda=lambda)
+  
+#Testing for overfitting
+  preds <- predict(lasso, as.matrix(train_x))
+  error <- preds-train_y
+  lasso_MSE[i,1] <- mean(error^2)
+    
+  preds <- predict(lasso, as.matrix(test_x))
+  error <- preds-test_y
+  lasso_MSE[i,2] <- mean(error^2)
+}
+
+apply(lasso_MSE, 2, mean)
+apply(lasso_MSE, 2, sd)
 ```
 ###Random Forest
 ```{r}
 #Do 1000 70/30 train test splits, average over results to get an idea of ASE
 #Create containers for MSE and importance
-forest_MSE <- vector(length=its)
+forest_MSE <- matrix(ncol = 2, nrow=its)
+colnames(forest_MSE) <- c("Train", "Test")
+
 forest_importance <- matrix(nrow=its, ncol=length(happy[,3:length(happy)]))
 colnames(forest_importance) <- c("Economy", "Family", "Health", "Freedom"
                     , "Generosity", "Trust")
@@ -177,16 +211,43 @@ for (i in 1:its){
   test_x <- happy[-index,3:length(happy)]
   test_y <- happy[-index,2]
   forest <- randomForest(x=train_x ,y=train_y, xtest=test_x, ytest=test_y,ntree=500, importance=TRUE)
-  forest_MSE[i] <- mean(forest$mse)
+  
+  error <- forest$predicted-train_y
+  forest_MSE[i,1] <- mean(error^2)
+  
+  error <- forest$test$predicted-test_y
+  forest_MSE[i,2] <- mean(error^2)
+  
   forest_importance[i,] <- forest$importance[,1]
 }
-mean(forest_MSE)
-sd(forest_MSE)
+apply(forest_MSE, 2, mean)
+apply(forest_MSE, 2, sd)
+
 apply(forest_importance, 2, mean)
 apply(forest_importance, 2, sd)
 ```
 
-###Support Vectorm Machine
+###Support Vector Machine
 ```{r}
+support_MSE <- matrix(ncol = 2, nrow=its)
+colnames(support_MSE) <- c("Train", "Test")
 
+#Try a radial SVM to start, look at others during hyperparameter optimization
+for (i in 1:its){
+  index <- sample(length(happy[,1]), size=length(happy[,1])*.7)
+  train_x <- happy[index,3:length(happy)]
+  train_y <- happy[index,2]
+  test_x <- happy[-index,3:length(happy)]
+  test_y <- happy[-index,2]
+  support <- svm(x=train_x ,y=train_y, kernel= "linear")
+  
+  support_MSE[i,1] <- mean(support$residuals^2)
+  
+  preds <- predict(support, test_x)
+  error <- preds-test_y
+  support_MSE[i,2] <- mean(error^2)
+}
+apply(support_MSE, 2, mean)
+apply(support_MSE, 2, sd)
+#Radial kernel overfits, try a different one. Linear fits better and doesn't overfit.
 ```
