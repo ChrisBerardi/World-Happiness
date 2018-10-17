@@ -16,7 +16,45 @@ library(kableExtra)
 ```
 
 ##Background
-Add in stuff about the survey etc. describe the data and the predictors as well as the target
+
+Following the adoption of UN Resolution 65/309 in 2011, the UN has released since 2012, with the exception of 2014, a year report on global happiness.
+\footnote {Happiness : towards a holistic approach to development : resolution  adopted by the General Assembly http://repository.un.org/handle/11176/291712} 
+These happiness scores are a result of a yearly survey conducted under the auspicious of the UN.
+\footnote {World Happiness Report http://worldhappiness.report/faq/} 
+A number of different variables, along with happiness are included in the World Happiness Report. 
+\footnote{World Happiness Report 2017 http://worldhappiness.report/ed/2017/}
+For the purpose of this analysis, the following variables will be used as predictors for a country's happiness: Economy, Family, Health, Freedom, Generosity, Trust. 
+
+Each predictor will now be defined.
+\footnote{World Happiness Report Statistical Appendix https://s3.amazonaws.com/happiness-report/2017/StatisticalAppendixWHR2017.pdf}
+
+####Happiness
+The target, happiness, is the national average of ranking a ranking of how well a person believes their life is going, from the worst possible, to the best possible.
+
+####Economy
+Economy is a measure of national GDP per capita in PPP per capita in constant 2011 dollars in August of 2016. 
+
+####Family
+Family is the average of a indicator variable measuring whether or not the respondent has someone, a friend or family member, who would help them in a time of trouble.
+
+####Health
+Health is a measure of healthy life expectancy at birth, not simply the life expectancy at birth.
+
+####Freedom
+Freedom is the average of an indicator variable of whether or not the respondent is satisfied with their freedom to choose what to do in life.
+
+####Generosity
+Generosity is a measure of the frequency of charitable donation per month scaled with GDP per capita.
+
+####Trust
+Trust is a measure of corruption perception, the average between indicators of existence of widespread public or private corruption. 
+
+###Analysis
+In order to better understand the relationship between the different predictors, first the data will be explored. This exploration will look for any problems with the data itself, either missing or questionable values. Correlations between the predictors will be calculated to determine if multicolinearity will be an issue with this data. 
+
+Following that the relationship between the predictors will be measured using various unstructured learning techniques. Principle Component Analysis (PCA), will be done to better understand the relationship between the different predictors, and to serve as predictors if multicolinearity proves intractable. A Bi-Plot will the be created to identify outlier nations that require special consideration and interpretation. Hierarchical clustering will then be done to help to identify patterns among the nations in the survey, these patterns will also be identified through K- Means Clustering analysis. 
+
+Subsequent to unstructed learning, structured learning, namely predictive modeling, with be done to predict happiness using the 6 other predictors identified for this analysis. 3 models will be fit to the data: LASSO, Random Forest (RF), and Support Vector Machine (SVM). These three techniques will undergo hyperparameter optimization, model, validation, and finally model comparison to the select the best fit for the target. 
 
 \pagebreak
 
@@ -74,26 +112,28 @@ eigs <- pca$sdev^2
 prop <- eigs/sum(eigs)
 plot(prop, xlab="Number of Component", ylab="Proportion of Variance Explained") #So only 3 needed, now interpret
 ```
-The scree plot indicates that 3 principle components(PC) needs to be interpreted. The first principle component:
+The scree plot indicates that 3 principle components(PC) needs to be interpreted. The 1^st^ principle component:
 ```{r}
 kable(pca$loading[,1], caption="PCA 1", booktabs=T)
 ```
 
 indicates a weighted average of the different predictors. This gives us no special insight into their relationship. 
 
-The second PC:
+\pagebreak
+
+The second and third PCs are:
 ```{r}
 kable(pca$loading[,2], caption="PCA 2", booktabs=T)
-```
-
-is much more interesting. This PC is a contrast between economy, family and health on one hand and freedom, generosity and trust on the other. This can be interpreted as suggesting that there are two classes of predictors for this data, one I will call goodness of life predictors: economy, family and health, the other goodness of government: freedom, generosity and trust. This indicated that we must be very careful in selecting more than one predictor from each class.
-
-The final PC:
-```{r} 
 kable(pca$loading[,3], caption= "PCA 3", booktabs=T)
 ```
 
-is another contrast, this time mixing the two classes that were identified from the second PC. The difference in classification is for generosity.
+are much more interesting. The 2^nd^ PC is a contrast between economy, family and health on one hand and freedom, generosity and trust on the other. This can be interpreted as suggesting that there are two classes of predictors for this data, one I will call goodness of life predictors: economy, family and health, the other goodness of government: freedom, generosity and trust. The 3^rd^ PC moves generosity from the goodness of government to goodness of life predictors. 
+
+ADD MORE TO CONNECT TO PREDICTOR DEFINITIONS
+
+This indicated that we must be very careful in selecting more than one predictor from each class.
+
+\pagebreak
 
 ###Bi-Plot
 ```{r}
@@ -108,22 +148,22 @@ biplot(pca, xlabs=happy[,1])
 A second bi-plot was constructed to determine which countries could be seen as outliers so that they could be better understood. We immediately see a number of countries which deserve further scrutiny: Myanmar, Rwanda, Somalia, Greece, Lithuania, and Taiwan (hidden by the goodness of life predictors).
 
 ####Myanmar
-Myanmar is ranked low, 114 out of 155. Its outlier nature is due to its much higher then expected generosity score given its happiness-- it has the highest score. The most likely explanation for this discrepancy is the highly Therevadan Buddhist nature of the majority Bamar ethnic group. 
+Myanmar is ranked low, 114 out of 155. Its outlier nature is due to its much higher then expected generosity score given its happiness-- it has the highest score. The most likely explanation for this discrepancy is the highly Therevadan Buddhist nature of the majority Bamar ethnic group who, by the definition of the predictor, must be more likely to help others. 
 
 ####Rwanda
-Rwanda is also ranked very low, 151 out of 155. It's outlier nature is due to its very high government score given its happiness, the second highest. This is most likely due to the after effects of the Rwandan genocide, and the extreme changes it brought to the Rwandan government.
+Rwanda is also ranked very low, 151 out of 155. It's outlier nature is due to its very trust score given its happiness, the second highest. This is most likely due to the after effects of the Rwandan genocide, and the extreme changes it brought to the Rwandan government, eliminating a large amount of the corruption endemic to the region.
 
 ####Somalia
-Somalia is ranked near the middle in terms of happiness, 93. However, Somalia's economy score is second to last, which would usually indicate an extremely low happiness rating. The reason for this difference is most likely the continued factional nature of the Somali state.
+Somalia is ranked near the middle in terms of happiness, 93. However, Somalia's economy score is second to last, which would usually indicate an extremely low happiness rating. The reason for this difference is most likely the continued factional nature of the Somali state. It might also indicate a need to address the adequacy of economic indicators in Somalia, and lead to questions about their accuracy. 
 
 ####Greece
-Greece has a middling happiness level, ranked 87, which is in sharp contrast to its generosity, ranked last, which would usually indicate a much lower happiness. This is most likely a consequence of the continued financial instability of the country.
+Greece has a middling happiness level, ranked 87, which is in sharp contrast to its generosity, ranked last, which would usually indicate a much lower happiness. This is most likely a consequence of the continued financial instability of the country resulting a lack of willingness to give to charity when an individual is already experiencing a decline in living standards.
 
 ####Lithuania
 Lithuania is ranked in the top third of countries, which is surprising give its low generosity score, only slightly higher than Greece's. This would normally indicate a much less happy nation. Lithuania, like Greece, also recently went through financial instability.
 
 ####Taiwan
-Taiwan is near the top of the rankings in terms of happiness, ranked 33. However its low freedom score would normally be associated with a much lower happiness. 
+Taiwan is near the top of the rankings in terms of happiness, ranked 33. However its low freedom score would normally be associated with a much lower happiness. The reasons for this perception of a lack of ability to choose what one does in life would require further research to fully understand. 
 
 ###Hierarchical Clustering
 ```{r}
@@ -144,6 +184,8 @@ Hierarchical Clustering (HC) was done to better understand the relationship betw
 Interpreting the results, it is the second split that is most meaningful. This splits the countries into three groups: those with very low happiness, the first branch from the bottom, those with high happiness, the second branch, and those with middle happiness, the top branch. 
 
 This 3-way split corresponds, in some way, to the old Cold War, 3 world classification. However, it should be noted that the "3^rd^ world" has greatly shrunk, while the 2^nd^ world previously the domain of communist regimes, has now become the most numerous. The 1st world has also increased in size. 
+
+\pagebreak
 
 ###K-Means Clustering
 ```{r}
@@ -224,11 +266,13 @@ for (i in 1:its){
 ```
 In order to help overcome issues with the multicolinearity inherent in the data, the LASSO will be used to obtain a linear model of the data. Using 5-fold cross validation to select the optimum $\lambda$ for fitting a LASSO model. Following that a LASSO model was fit to the data. `r its` 70/30 train test splits were performed to estimate the MSE and standard deviation of the MSE for both the training and test data. The results are as follows:
 ```{r}
-kable(apply(lasso_MSE, 2, mean), caption="LASSO MSE Means", booktabs=T)
+kable(apply(lasso_MSE, 2, mean),caption="LASSO MSE Means", booktabs=T)
 ```
 ```{r}
 kable(apply(lasso_MSE, 2, sd), caption="LASSO MSE Std.", booktabs=T)
 ```
+
+\pagebreak
 
 ###Random Forest
 ```{r}
@@ -257,7 +301,7 @@ for (i in 1:its){
   forest_importance[i,] <- forest$importance[,1]
 }
 ```
-While a random forest is said to be self-validating, given the nature of the algorithm, `r its` 70/30 train/test splits were done to estimate the MSE and $\sigma$ of the estimates. 500 trees were used. Once hyperparameter optimization is coded, this number will be determined by optimization of the fit of the data. The results are as follows:
+While a RF is said to be self-validating, given the nature of the algorithm, `r its` 70/30 train/test splits were done to estimate the MSE and $\sigma$ of the estimates. 500 trees were used. Once hyperparameter optimization is coded, this number will be determined by optimization of the fit of the data. The results are as follows:
 
 ```{r}
 kable(apply(forest_MSE, 2, mean), caption="Random Forest MSE Means", booktabs=T)
@@ -271,8 +315,11 @@ kable(apply(forest_importance, 2, mean), caption="Variable Importance Means", bo
 kable(apply(forest_importance, 2, sd), caption= "Variable Importance Std.", booktabs=T)
 ```
 
-It is clear from the tables that Health, then Economy, then Family and finally Freedom, in that order play an important role in predicting happiness in a country. Generosity and trust appear to lack much predictive power.
-INTERPRET MORE
+It is clear from the tables that Health, then Economy, then Family and finally Freedom, in that order play an important role in predicting happiness in a country. Generosity and Trust appear to lack much predictive power. Interpreting these results, the most important factor in predicting happiness is how long an individual is, and how healthy they are during their life. After that how wealthy, then how much support, then how free an individual is to make choices round out the most important predictors. 
+
+If we were to engage in sophomoric psychology, we would find these correspond rather well to Maslow's Hierarchy of needs. \footnote{Maslow, A (1954). Motivation and personality. New York, NY: Harper.} The most important need is that for corporeal safety, i.e., safety in one's body. Following that economic safety, the ability to earn enough money to support one's self. Then moving on to the ability to find aid in times of trouble, and at last being free to choose how one uses their life. 
+
+\pagebreak
 
 ###Support Vector Machine
 ```{r}
@@ -304,6 +351,7 @@ kable(apply(support_MSE, 2, mean), caption="Support Vector Machine MSE Means", b
 kable(apply(support_MSE, 2, sd), caption="Support Vector Machine MSE Std.", booktabs=T)
 ```
 
+\pagebreak
 
 ###Optimum Model
 
