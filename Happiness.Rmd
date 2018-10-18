@@ -17,44 +17,46 @@ library(kableExtra)
 
 ##Background
 
-Following the adoption of UN Resolution 65/309 in 2011, the UN has released since 2012, with the exception of 2014, a year report on global happiness.
-\footnote {Happiness : towards a holistic approach to development : resolution  adopted by the General Assembly http://repository.un.org/handle/11176/291712} 
-These happiness scores are a result of a yearly survey conducted under the auspicious of the UN.
-\footnote {World Happiness Report http://worldhappiness.report/faq/} 
+Following the adoption of UN Resolution 65/309 in 2011, the UN has released, with the exception of 2014, yearly reports on global happiness.
+\footnote {Happiness: towards a holistic approach to development: resolution adopted by the General Assembly, http://repository.un.org/handle/11176/291712} 
+These Happiness Reports are a result of global surveys conducted under the auspicious of the UN.
+\footnote {World Happiness Report, http://worldhappiness.report/faq/} 
 A number of different variables, along with happiness are included in the World Happiness Report. 
-\footnote{World Happiness Report 2017 http://worldhappiness.report/ed/2017/}
+\footnote{World Happiness Report 2017, http://worldhappiness.report/ed/2017/}
 For the purpose of this analysis, the following variables will be used as predictors for a country's happiness: Economy, Family, Health, Freedom, Generosity, Trust. 
 
-Each predictor will now be defined.
-\footnote{World Happiness Report Statistical Appendix https://s3.amazonaws.com/happiness-report/2017/StatisticalAppendixWHR2017.pdf}
+
+###Variables
+Each variable will now be defined.
+\footnote{World Happiness Report Statistical Appendix, https://s3.amazonaws.com/happiness-report/2017/StatisticalAppendixWHR2017.pdf}
 
 ####Happiness
-The target, happiness, is the national average of ranking a ranking of how well a person believes their life is going, from the worst possible, to the best possible.
+The target, happiness, is the national average of ranking, from 0 to 10, of how well a person believes their life is going, from the worst possible, to the best possible.
 
 ####Economy
-Economy is a measure of national GDP per capita in PPP per capita in constant 2011 dollars in August of 2016. 
+Economy is a measure of national GDP in PPP per capita in constant 2011 dollars in August of 2016. 
 
 ####Family
-Family is the average of a indicator variable measuring whether or not the respondent has someone, a friend or family member, who would help them in a time of trouble.
+Family is the average of an indicator measuring whether or not the respondent has someone, a friend or family member, who would help them in a time of personal crisis.
 
 ####Health
-Health is a measure of healthy life expectancy at birth, not simply the life expectancy at birth.
+Health is a measure of healthy life expectancy at birth, not simply life expectancy at birth.
 
 ####Freedom
-Freedom is the average of an indicator variable of whether or not the respondent is satisfied with their freedom to choose what to do in life.
+Freedom is the average of an indicator of whether or not the respondent is satisfied with their freedom to choose what to do in life.
 
 ####Generosity
 Generosity is a measure of the frequency of charitable donation per month scaled with GDP per capita.
 
 ####Trust
-Trust is a measure of corruption perception, the average between indicators of existence of widespread public or private corruption. 
+Trust is a measure of corruption perception, the average between two indicators: existence of widespread public corruption and existence of widespread private corruption. 
 
 ###Analysis
-In order to better understand the relationship between the different predictors, first the data will be explored. This exploration will look for any problems with the data itself, either missing or questionable values. Correlations between the predictors will be calculated to determine if multicolinearity will be an issue with this data. 
+In order to better understand the relationship between the different predictors, the data will first be explored. This exploration will look for any problems with the data itself, either missing or questionable values. Correlations between the predictors will be calculated to determine if multicolinearity will be an issue with this data. 
 
-Following that the relationship between the predictors will be measured using various unstructured learning techniques. Principle Component Analysis (PCA), will be done to better understand the relationship between the different predictors, and to serve as predictors if multicolinearity proves intractable. A Bi-Plot will the be created to identify outlier nations that require special consideration and interpretation. Hierarchical clustering will then be done to help to identify patterns among the nations in the survey, these patterns will also be identified through K- Means Clustering analysis. 
+Following that, the relationships between the predictors and the relationships between the nations investigated in the survey, will be measured using various unstructured learning techniques. Principle Component Analysis (PCA), will be done to better understand the relationships between the different predictors, and to serve as predictors if multicolinearity proves intractable. A Bi-Plot will then be created to identify outlier nations that require special consideration and interpretation. Following that, Hierarchical Clustering (HC) will be done to help to identify patterns among the nations in the survey, these patterns will also be identified through K- Means Clustering analysis.
 
-Subsequent to unstructed learning, structured learning, namely predictive modeling, with be done to predict happiness using the 6 other predictors identified for this analysis. 3 models will be fit to the data: LASSO, Random Forest (RF), and Support Vector Machine (SVM). These three techniques will undergo hyperparameter optimization, model, validation, and finally model comparison to the select the best fit for the target. 
+Subsequent to unstructed learning, structured learning, namely three predictive modeling algorithms, with be done to predict happiness using the 6 predictors identified for this analysis. 3 models will be fit to the data: LASSO, Random Forest (RF), and Support Vector Machine (SVM). These three techniques will undergo hyperparameter optimization, model, validation, and finally model comparison to the select the best fit for the target. Once the optimum model is found, it will be interpreted and conclusions from the entire analysis. 
 
 \pagebreak
 
@@ -71,7 +73,7 @@ colnames(happy) <-c("Country", "Happiness", "Economy", "Family", "Health", "Free
 ```
 
 
-The data contains 155 different countries. Looking at the summary statistics calculated for each of the 6 predictors used in the report, none have missing values, nor do they have maximum values much greater than their 3rd quartile. For this reason no work need be done on data cleaning. This was expected of a data set from Kaggle.
+From Table 1, the data contains 155 different nations. Looking at the summary statistics calculated for each of the 6 predictors used in the report, none have missing values, nor do they have maximum values much greater than their 3rd quartile. For this reason no work need be done on data cleaning. This is expected of a data set from Kaggle.
 
 
 ```{r} 
@@ -85,13 +87,13 @@ kable(summary(happy), "latex", caption="Summary of Data", booktabs=T) %>%
 ```{r}
 plot(happy[,-1])
 ```
-The plot above shows clear evidence of high correlation between multiple predictors. For that reason controlling multicolinearity will need to be a focus when modeling the data. 
+The plot above shows clear evidence of high correlation between multiple predictors. For this reason controlling multicolinearity will need to be a focus when modeling the data. 
 
 \pagebreak
 
-Looking further, we find the same issue when calculating the correlation between the predictors. The correlation between economy and health, as well as between
+Looking further into correlation, we find the same issue when calculating the correlation between the predictors. Table 2 shows correlation between many of the predictors is large.
 
-To combat the multicolinearity, a number of different approaches with be attempted, including variable selection as well as modeling with principle components. 
+This correlation indicates many predictors carry the same information, which exposes the multicolinearity risk inherent in modeling this data.
 
 ```{r}
 kable(cor(happy[,-1]), caption="Correlation between Predictors", booktabs=T)
@@ -100,7 +102,7 @@ kable(cor(happy[,-1]), caption="Correlation between Predictors", booktabs=T)
 \pagebreak
 
 ##Unstructed Learning
-To obtain a better understanding of the relationship between the correlated predictors, as well as to discover outlier countries and cluster the countries of the world, principle component analysis, hierarchical clustering, k-means clustering and bi-plots were carried out. 
+To obtain a better understanding of the nations and relationships between the correlated predictors, as well as to discover outliers and cluster the nations of the world, PCA, HC, K-Means Clustering  were carried out and Bi-Plots were created. 
 
 ###Principle Component Analysis
 ```{r}
@@ -112,26 +114,22 @@ eigs <- pca$sdev^2
 prop <- eigs/sum(eigs)
 plot(prop, xlab="Number of Component", ylab="Proportion of Variance Explained") #So only 3 needed, now interpret
 ```
-The scree plot indicates that 3 principle components(PC) needs to be interpreted. The 1^st^ principle component:
+The scree plot indicates that 3 principle components(PC) needs to be interpreted. The 1^st^ principle component is:
 ```{r}
-kable(pca$loading[,1], caption="PCA 1", booktabs=T)
+kable(pca$loading[,1], caption="PC 1", booktabs=T)
 ```
 
-indicates a weighted average of the different predictors. This gives us no special insight into their relationship. 
+This PC indicates a weighted average of the different predictors. This gives us no special insight into the relationship between the predictors. 
 
 \pagebreak
 
 The second and third PCs are:
 ```{r}
-kable(pca$loading[,2], caption="PCA 2", booktabs=T)
-kable(pca$loading[,3], caption= "PCA 3", booktabs=T)
+kable(pca$loading[,2], caption="PC 2", booktabs=T)
+kable(pca$loading[,3], caption= "PC 3", booktabs=T)
 ```
 
-are much more interesting. The 2^nd^ PC is a contrast between economy, family and health on one hand and freedom, generosity and trust on the other. This can be interpreted as suggesting that there are two classes of predictors for this data, one I will call goodness of life predictors: economy, family and health, the other goodness of government: freedom, generosity and trust. The 3^rd^ PC moves generosity from the goodness of government to goodness of life predictors. 
-
-ADD MORE TO CONNECT TO PREDICTOR DEFINITIONS
-
-This indicated that we must be very careful in selecting more than one predictor from each class.
+These PCs are much more interesting. The 2^nd^ PC is a contrast between economy, family and health on one hand and freedom, generosity and trust on the other. This can be interpreted as suggesting that there are two classes of predictors for this data, one I will call goodness of life predictors: economy, family and health, the other goodness of government: freedom, generosity and trust. The 3^rd^ PC moves generosity from the goodness of government to goodness of life predictors. The conclusions that can be drawn form this will be considered following bi-plot analysis.
 
 \pagebreak
 
@@ -140,7 +138,8 @@ This indicated that we must be very careful in selecting more than one predictor
 #Do a Biplot to start to look at more relationships between predictors
 biplot(pca)
 ```
-To check the conclusions from the principle component analysis(PCA), a bi-plot was constructed. The bi-plot results are very similar to those seen from PCA, the goodness of life predictors are clustered, as are the goodness of government, with generosity further from the other two goodness of government measures.
+To check the conclusions from the (PCA), a bi-plot was constructed. The bi-plot results are very similar to those seen from PCA, the goodness of life predictors are clustered, as are two of the goodness of government: trust, freedom. Generosity is now found on its own, which is consistent with its change from one contrast to the other seen in PCA.
+MORE
 
 ```{r}
 biplot(pca, xlabs=happy[,1])
@@ -148,19 +147,19 @@ biplot(pca, xlabs=happy[,1])
 A second bi-plot was constructed to determine which countries could be seen as outliers so that they could be better understood. We immediately see a number of countries which deserve further scrutiny: Myanmar, Rwanda, Somalia, Greece, Lithuania, and Taiwan (hidden by the goodness of life predictors).
 
 ####Myanmar
-Myanmar is ranked low, 114 out of 155. Its outlier nature is due to its much higher then expected generosity score given its happiness-- it has the highest score. The most likely explanation for this discrepancy is the highly Therevadan Buddhist nature of the majority Bamar ethnic group who, by the definition of the predictor, must be more likely to help others. 
+Myanmar is ranked low in term of happiness, 114 out of 155. Its outlier nature is due to its much higher then expected generosity score given its happiness-- it has the highest score. The most likely explanation for this discrepancy is the highly Therevadan Buddhist nature of the majority Bamar ethnic group who, by the definition of the predictor, must be very willing to donate to charity.
 
 ####Rwanda
-Rwanda is also ranked very low, 151 out of 155. It's outlier nature is due to its very trust score given its happiness, the second highest. This is most likely due to the after effects of the Rwandan genocide, and the extreme changes it brought to the Rwandan government, eliminating a large amount of the corruption endemic to the region.
+Rwanda is also ranked very low in terms of happiness, 151 out of 155. Its outlier nature is due to its very high trust score given its low happiness. This is most likely due to the after effects of the Rwandan genocide, and the extreme changes it brought to the Rwandan government, eliminating a large amount of the corruption endemic to the region.
 
 ####Somalia
-Somalia is ranked near the middle in terms of happiness, 93. However, Somalia's economy score is second to last, which would usually indicate an extremely low happiness rating. The reason for this difference is most likely the continued factional nature of the Somali state. It might also indicate a need to address the adequacy of economic indicators in Somalia, and lead to questions about their accuracy. 
+Somalia is ranked near the middle in terms of happiness, 93. However, Somalia's economy score is second to last, which would usually indicate an extremely low happiness rating. The reason for this difference is most likely the continued factional nature of the Somali state. It might also indicate a need to address the adequacy of economic indicators in Somalia, and leads to questions about their accuracy. 
 
 ####Greece
 Greece has a middling happiness level, ranked 87, which is in sharp contrast to its generosity, ranked last, which would usually indicate a much lower happiness. This is most likely a consequence of the continued financial instability of the country resulting a lack of willingness to give to charity when an individual is already experiencing a decline in living standards.
 
 ####Lithuania
-Lithuania is ranked in the top third of countries, which is surprising give its low generosity score, only slightly higher than Greece's. This would normally indicate a much less happy nation. Lithuania, like Greece, also recently went through financial instability.
+Lithuania is ranked in the top third of countries, which is surprising give its low generosity score, only slightly higher than Greece's. This would normally indicate a much less happy nation. Lithuania, like Greece, also recently went through financial instability. For this reason its interpretation matches that of the Hellenic State.
 
 ####Taiwan
 Taiwan is near the top of the rankings in terms of happiness, ranked 33. However its low freedom score would normally be associated with a much lower happiness. The reasons for this perception of a lack of ability to choose what one does in life would require further research to fully understand. 
@@ -179,11 +178,11 @@ happy_h$labels <-happy
 ![](dendrogram_plot.png)
 \pagebreak
 
-Hierarchical Clustering (HC) was done to better understand the relationship between the different countries, that is, to see if there was some way to classify the countries based on their predictor values. To that end complete clustering was done which produced the dendrogram seen on the previous page.
+HC was done to better understand the relationships between the different countries, that is, to see if there was some way to classify the countries based on their predictor values. To that end complete clustering was done which produced the dendrogram seen on the previous page.
 
 Interpreting the results, it is the second split that is most meaningful. This splits the countries into three groups: those with very low happiness, the first branch from the bottom, those with high happiness, the second branch, and those with middle happiness, the top branch. 
 
-This 3-way split corresponds, in some way, to the old Cold War, 3 world classification. However, it should be noted that the "3^rd^ world" has greatly shrunk, while the 2^nd^ world previously the domain of communist regimes, has now become the most numerous. The 1st world has also increased in size. 
+This 3-way split corresponds, in some way, to the old Cold War, 3 World classification. However, it should be noted that the "3^rd^ World" has greatly shrunk, while the 2^nd^ World, previously the domain of communist regimes, has now become the most numerous. The 1st world has also increased in size, taking former 2^nd^ and 3^rd^ World nations.
 
 \pagebreak
 
@@ -212,12 +211,12 @@ country_clusters <- cbind(happy[,1], happy_k$cluster)
 colnames(country_clusters) <- c("Country","Cluster")
 write.csv(country_clusters, file="clusters2017.csv")
 ```
-This division of the data into 3 parts is consistent with the results from PCA as well as HC indicates there is some evidence in the data of a tripartite division in the world. For this reason, K-means clustering was done with a cluster number of 3. 
+This division of the data into 3 parts is consistent with the results from PCA, HC also indicates there is some evidence in the data of a tripartite division in the world. For this reason, K-means clustering was done with a cluster number of 3. 
 
 The plot above shows the results of this clustering. Further visualization and interpretation of the cluster will done using Tableau
 
 ![](clusters.png)
-This plot from Tableau shows a clear indication of the meaning of the 3 clusters identified above. One cluster corresponds to the highest rated countries (green), one the lowest (red), and one to everyone else (yellow).
+This plot from Tableau shows a clear indication of the meaning of the 3 clusters identified above. One cluster corresponds to the highest rated countries (green), one the lowest (red), and one to everyone else (yellow). These results correspond, almost completely, with the current developed, developing and under developed nations of the world.
 
 \pagebreak
 
@@ -264,7 +263,7 @@ for (i in 1:its){
 
 
 ```
-In order to help overcome issues with the multicolinearity inherent in the data, the LASSO will be used to obtain a linear model of the data. Using 5-fold cross validation to select the optimum $\lambda$ for fitting a LASSO model. Following that a LASSO model was fit to the data. `r its` 70/30 train test splits were performed to estimate the MSE and standard deviation of the MSE for both the training and test data. The results are as follows:
+In order to help overcome issues with the multicolinearity inherent in the data, the LASSO will be used to obtain a linear model of the data. Using 5-fold cross validation to select the optimum regularization parameter, $\lambda$, for fitting a LASSO model, the following LASSO model was fit to the data. `r its` 70/30 train test splits were performed to estimate the MSE and standard deviation of the MSE for both the training and test data. The results are as follows:
 ```{r}
 kable(apply(lasso_MSE, 2, mean),caption="LASSO MSE Means", booktabs=T)
 ```
@@ -301,7 +300,7 @@ for (i in 1:its){
   forest_importance[i,] <- forest$importance[,1]
 }
 ```
-While a RF is said to be self-validating, given the nature of the algorithm, `r its` 70/30 train/test splits were done to estimate the MSE and $\sigma$ of the estimates. 500 trees were used. Once hyperparameter optimization is coded, this number will be determined by optimization of the fit of the data. The results are as follows:
+While an RF is said to be self-validating, given the nature of the algorithm, `r its` 70/30 train/test splits were done to estimate the MSE and $\sigma$ of the estimates. 500 trees were used. Once hyperparameter optimization is coded, the number of trees will be determined by optimization from the fit of the data. The results are as follows:
 
 ```{r}
 kable(apply(forest_MSE, 2, mean), caption="Random Forest MSE Means", booktabs=T)
@@ -315,9 +314,9 @@ kable(apply(forest_importance, 2, mean), caption="Variable Importance Means", bo
 kable(apply(forest_importance, 2, sd), caption= "Variable Importance Std.", booktabs=T)
 ```
 
-It is clear from the tables that Health, then Economy, then Family and finally Freedom, in that order play an important role in predicting happiness in a country. Generosity and Trust appear to lack much predictive power. Interpreting these results, the most important factor in predicting happiness is how long an individual is, and how healthy they are during their life. After that how wealthy, then how much support, then how free an individual is to make choices round out the most important predictors. 
+It is clear from Tables 10 and 11 that Health, Economy, Family and Freedom, in that order play an important role in predicting happiness in a country. Generosity and Trust appear to lack much predictive power. Interpreting these results, the most important factor in predicting happiness is how long and healthy an individual is during their life. After that how wealthy, then how much support, then how free an individual is to make choices, round out the most important predictors. 
 
-If we were to engage in sophomoric psychology, we would find these correspond rather well to Maslow's Hierarchy of needs. \footnote{Maslow, A (1954). Motivation and personality. New York, NY: Harper.} The most important need is that for corporeal safety, i.e., safety in one's body. Following that economic safety, the ability to earn enough money to support one's self. Then moving on to the ability to find aid in times of trouble, and at last being free to choose how one uses their life. 
+If we were to engage in sophomoric psychology, we would find these correspond rather well to Maslow's Hierarchy of needs. \footnote{Maslow, A (1954). Motivation and personality. New York, NY: Harper.} The most important need is that of corporeal safety, i.e., safety in one's body. Following that economic safety, the ability to earn enough money to support one's self. Then moving on to the ability to find aid in times of trouble, and at last being free to choose how one uses their life. 
 
 \pagebreak
 
