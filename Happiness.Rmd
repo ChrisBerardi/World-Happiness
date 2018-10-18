@@ -13,6 +13,7 @@ library(randomForest)
 library(e1071)
 library(knitr)
 library(kableExtra)
+library(dendextend)
 ```
 
 ##Background
@@ -168,11 +169,13 @@ Taiwan is near the top of the rankings in terms of happiness, ranked 33. However
 ```{r}
 #hierarchical clustering
 happy_h <-hclust(dist(happy[,3:length(happy)]), method="complete")
-happy_h$labels <-happy
+happy_h$labels <- happy$Country
+dend <- as.dendrogram(happy_h)
+dend <-  color_labels(happy_h, k = 3)
 #Comment out to prevent stray output in pdf
 #png(file="Dendrogram_plot.png", width=10, height=24, units="in", res=288)
 #par(mar=c(2,2,2,10))
-#plot(as.dendrogram(happy_h), horiz=T)
+#plot(dend, horiz=T, main="Dendrogram of HC with 3 Clusters")
 #dev.off()
 ```
 ![](dendrogram_plot.png)
@@ -180,7 +183,7 @@ happy_h$labels <-happy
 
 HC was done to better understand the relationships between the different countries, that is, to see if there was some way to classify the countries based on their predictor values. To that end complete clustering was done which produced the dendrogram seen on the previous page.
 
-Interpreting the results, it is the second split that is most meaningful. This splits the countries into three groups: those with very low happiness, the first branch from the bottom, those with high happiness, the second branch, and those with middle happiness, the top branch. 
+Interpreting the results, it is the second split that is most meaningful. This splits the countries into three groups: those with very low happiness, pink, green, the second branch, and those with middle happiness, blue. 
 
 This 3-way split corresponds, in some way, to the old Cold War, 3 World classification. However, it should be noted that the "3^rd^ World" has greatly shrunk, while the 2^nd^ World, previously the domain of communist regimes, has now become the most numerous. The 1st world has also increased in size, taking former 2^nd^ and 3^rd^ World nations.
 
@@ -275,46 +278,58 @@ kable(apply(lasso_MSE, 2, sd), caption="LASSO MSE Std.", booktabs=T)
 
 ###Random Forest
 ```{r}
-#Do 1000 70/30 train test splits, average over results to get an idea of ASE
-#Create containers for MSE and importance
-forest_MSE <- matrix(ncol = 2, nrow=its)
-colnames(forest_MSE) <- c("Train", "Test")
+#Hyperparamter optimization: number of tree in model
+trees <- c(50,100,250,500,1000,1500,2000)
 
-forest_importance <- matrix(nrow=its, ncol=length(happy[,3:length(happy)]))
-colnames(forest_importance) <- c("Economy", "Family", "Health", "Freedom"
+for (j in 1:length(trees)){
+  #Do 1000 70/30 train test splits, average over results to get an idea of ASE
+  #Create containers for MSE and importance
+  forest_MSE <- matrix(ncol = 2, nrow=its)
+  colnames(forest_MSE) <- c("Train", "Test")
+
+  forest_importance <- matrix(nrow=its, ncol=length(happy[,3:length(happy)]))
+  colnames(forest_importance) <- c("Economy", "Family", "Health", "Freedom"
                     , "Generosity", "Trust")
-for (i in 1:its){
-  index <- sample(length(happy[,1]), size=length(happy[,1])*.7)
-  train_x <- happy[index,3:length(happy)]
-  train_y <- happy[index,2]
-  test_x <- happy[-index,3:length(happy)]
-  test_y <- happy[-index,2]
-  forest <- randomForest(x=train_x ,y=train_y, xtest=test_x, ytest=test_y,ntree=500, importance=TRUE)
+  for (i in 1:its){
+    index <- sample(length(happy[,1]), size=length(happy[,1])*.7)
+    train_x <- happy[index,3:length(happy)]
+    train_y <- happy[index,2]
+    test_x <- happy[-index,3:length(happy)]
+    test_y <- happy[-index,2]
+    forest <- randomForest(x=train_x ,y=train_y, xtest=test_x, ytest=test_y,ntree=trees[j], importance=TRUE)
   
-  error <- forest$predicted-train_y
-  forest_MSE[i,1] <- mean(error^2)
+    error <- forest$predicted-train_y
+    forest_MSE[i,1] <- mean(error^2)
   
-  error <- forest$test$predicted-test_y
-  forest_MSE[i,2] <- mean(error^2)
+    error <- forest$test$predicted-test_y
+    forest_MSE[i,2] <- mean(error^2)
   
-  forest_importance[i,] <- forest$importance[,1]
+    forest_importance[i,] <- forest$importance[,1]
+  }
+  this_forest <- c(apply(forest_MSE, 2, mean), apply(forest_MSE, 2, sd), apply(forest_importance, 2, mean), apply(forest_importance, 2, sd))
+  if (j ==1 ){
+    forest_hyper <- data.frame(this_forest)
+  } else{
+   forest_hyper <- data.frame(forest_hyper, this_forest) 
+  }
 }
+forest_hyper <- data.frame(forest_hyper, row.names= c("Mean MSE Train", "Mean MSE Test", "Mean MSE Sd Train", "Mean MSE Sd Test", "Economy", "Family", "Health", "Freedom", "Generosity", "Trust", "Economy Sd", "Family Sd", "Health Sd", "Freedom Sd", "Generosity Sd", "Trust Sd"))
+colnames(forest_hyper) <- trees
+
 ```
 While an RF is said to be self-validating, given the nature of the algorithm, `r its` 70/30 train/test splits were done to estimate the MSE and $\sigma$ of the estimates. 500 trees were used. Once hyperparameter optimization is coded, the number of trees will be determined by optimization from the fit of the data. The results are as follows:
 
 ```{r}
-kable(apply(forest_MSE, 2, mean), caption="Random Forest MSE Means", booktabs=T)
-kable(apply(forest_MSE, 2, sd), caption="Random Forest MSE Std.", booktabs=T)
+kable(forest_hyper, caption="Random Forest Results", booktabs=T)
+
 ```
 
 
 Furthermore, variable importance was extracted from the random forest model. The results are as follows:
-```{r}
-kable(apply(forest_importance, 2, mean), caption="Variable Importance Means", booktabs=T)
-kable(apply(forest_importance, 2, sd), caption= "Variable Importance Std.", booktabs=T)
-```
 
 It is clear from Tables 10 and 11 that Health, Economy, Family and Freedom, in that order play an important role in predicting happiness in a country. Generosity and Trust appear to lack much predictive power. Interpreting these results, the most important factor in predicting happiness is how long and healthy an individual is during their life. After that how wealthy, then how much support, then how free an individual is to make choices, round out the most important predictors. 
+
+REWRITE TO WORK WITH NEW CHART
 
 If we were to engage in sophomoric psychology, we would find these correspond rather well to Maslow's Hierarchy of needs. \footnote{Maslow, A (1954). Motivation and personality. New York, NY: Harper.} The most important need is that of corporeal safety, i.e., safety in one's body. Following that economic safety, the ability to earn enough money to support one's self. Then moving on to the ability to find aid in times of trouble, and at last being free to choose how one uses their life. 
 
@@ -324,30 +339,40 @@ If we were to engage in sophomoric psychology, we would find these correspond ra
 ```{r}
 support_MSE <- matrix(ncol = 2, nrow=its)
 colnames(support_MSE) <- c("Train", "Test")
+eps <- c(.001,.01,.1,.5,1)
 
 #Try a radial SVM to start, look at others during hyperparameter optimization
-for (i in 1:its){
-  index <- sample(length(happy[,1]), size=length(happy[,1])*.7)
-  train_x <- happy[index,3:length(happy)]
-  train_y <- happy[index,2]
-  test_x <- happy[-index,3:length(happy)]
-  test_y <- happy[-index,2]
-  support <- svm(x=train_x ,y=train_y, kernel= "linear")
+#Radial kernel overfits, try a different one. Linear fits better and doesn't overfit
+for (j in 1:length(eps)){
+  for (i in 1:its){
+    index <- sample(length(happy[,1]), size=length(happy[,1])*.7)
+    train_x <- happy[index,3:length(happy)]
+    train_y <- happy[index,2]
+    test_x <- happy[-index,3:length(happy)]
+    test_y <- happy[-index,2]
+    support <- svm(x=train_x ,y=train_y, kernel= "linear")
   
-  support_MSE[i,1] <- mean(support$residuals^2)
+    support_MSE[i,1] <- mean(support$residuals^2)
   
-  preds <- predict(support, test_x)
-  error <- preds-test_y
-  support_MSE[i,2] <- mean(error^2)
+    preds <- predict(support, test_x)
+    error <- preds-test_y
+    support_MSE[i,2] <- mean(error^2)
+  }
+  this_eps <- c(apply(support_MSE, 2, mean), apply(support_MSE, 2, sd))
+  if (j==1){
+    SVM_hyper <- data.frame(this_eps)
+  } else{
+    SVM_hyper <- data.frame(SVM_hyper, this_eps)
+  }
 }
-#Radial kernel overfits, try a different one. Linear fits better and doesn't overfit.
+SVM_hyper <- data.frame(SVM_hyper, row.names= c("Mean MSE Train", "Mean MSE Test", "Mean MSE Sd Train", "Mean MSE Sd Test"))
+colnames(SVM_hyper) <- eps
 ```
 Two SVMs were fit to the data. The first was an SVM with radial kernel. This model was found to overfit the data and so was replaced with a model with linear kernel. This model did not overfit the data. `r its` 70/30 train/test splits were done to estimate the MSE and the $\sigma$ of the estimates. No hyperparameter optimization has as of yet been coded.
 
 The following results were found:
 ```{r}
-kable(apply(support_MSE, 2, mean), caption="Support Vector Machine MSE Means", booktabs=T)
-kable(apply(support_MSE, 2, sd), caption="Support Vector Machine MSE Std.", booktabs=T)
+kable(SVM_hyper, caption="Support Vector Machine Results", booktabs=T)
 ```
 
 \pagebreak
