@@ -126,8 +126,10 @@ This PC indicates a weighted average of the different predictors. This gives us 
 
 The second and third PCs are:
 ```{r}
-kable(pca$loading[,2], caption="PC 2", booktabs=T)
-kable(pca$loading[,3], caption= "PC 3", booktabs=T)
+kable(pca$loading[,2], caption="PC 2", booktabs=T) %>%
+  kable_styling(full_width= F, position="left")
+kable(pca$loading[,3], caption= "PC 3", booktabs=T) %>%
+  kable_styling(full_width= F, position="right")
 ```
 
 These PCs are much more interesting. The 2^nd^ PC is a contrast between economy, family and health on one hand and freedom, generosity and trust on the other. This can be interpreted as suggesting that there are two classes of predictors for this data, one I will call goodness of life predictors: economy, family and health, the other goodness of government: freedom, generosity and trust. The 3^rd^ PC moves generosity from the goodness of government to goodness of life predictors. The conclusions that can be drawn form this will be considered following bi-plot analysis.
@@ -227,9 +229,6 @@ This plot from Tableau shows a clear indication of the meaning of the 3 clusters
 ```{r}
 #Since muilticolinearity is an issue, fit 3 models that can help deal with it: linear regression with the LASSO, #random forest and SVM, do LOOCV to determine optimum model compare models based on MSE to select the optimum # model, interpret results in light of how to get the happiest country
 
-#Implement hyperparamter optimization after implementing train/test splitting
-#Implemented overfitting check
-
 #Set the number of Train/Test iterations to do
 its<-1000
 ```
@@ -263,16 +262,15 @@ for (i in 1:its){
   error <- preds-test_y
   lasso_MSE[i,2] <- mean(error^2)
 }
-
-
+lasso_results <- apply(lasso_MSE, 2, mean)
+lasso_results <- rbind(lasso_results,apply(lasso_MSE, 2, sd))
+rownames(lasso_results) <- c("MSE", "MSE Sd.")
 ```
 In order to help overcome issues with the multicolinearity inherent in the data, the LASSO will be used to obtain a linear model of the data. Using 5-fold cross validation to select the optimum regularization parameter, $\lambda$, for fitting a LASSO model, the following LASSO model was fit to the data. `r its` 70/30 train test splits were performed to estimate the MSE and standard deviation of the MSE for both the training and test data. The results are as follows:
 ```{r}
-kable(apply(lasso_MSE, 2, mean),caption="LASSO MSE Means", booktabs=T)
+kable(lasso_results,caption="LASSO Results", booktabs=T)
 ```
-```{r}
-kable(apply(lasso_MSE, 2, sd), caption="LASSO MSE Std.", booktabs=T)
-```
+
 
 \pagebreak
 
@@ -317,19 +315,18 @@ forest_hyper <- data.frame(forest_hyper, row.names= c("Mean MSE Train", "Mean MS
 colnames(forest_hyper) <- trees
 
 ```
-While an RF is said to be self-validating, given the nature of the algorithm, `r its` 70/30 train/test splits were done to estimate the MSE and $\sigma$ of the estimates. 500 trees were used. Once hyperparameter optimization is coded, the number of trees will be determined by optimization from the fit of the data. The results are as follows:
+While an RF is said to be self-validating, given the nature of the algorithm, `r its` 70/30 train/test splits were done to estimate the MSE and $\sigma$ of the estimates. Hyperparameter optimization was conducted on the number of trees in the model The following number of trees were used: `r trees`. The results are as follows:
 
 ```{r}
 kable(forest_hyper, caption="Random Forest Results", booktabs=T)
 
 ```
 
+The optimum RF, the one with the lowest MSE that does not overfit, for this data contains 1000 trees.
 
-Furthermore, variable importance was extracted from the random forest model. The results are as follows:
+Furthermore, variable importance was extracted from the random forest model.
 
-It is clear from Tables 10 and 11 that Health, Economy, Family and Freedom, in that order play an important role in predicting happiness in a country. Generosity and Trust appear to lack much predictive power. Interpreting these results, the most important factor in predicting happiness is how long and healthy an individual is during their life. After that how wealthy, then how much support, then how free an individual is to make choices, round out the most important predictors. 
-
-REWRITE TO WORK WITH NEW CHART
+It is clear from Table that Health, Economy, Family and Freedom, in that order play an important role in predicting happiness in a country. Generosity and Trust appear to lack much predictive power. Interpreting these results, the most important factor in predicting happiness is how long and healthy an individual is during their life. After that how wealthy, then how much support, then how free an individual is to make choices, round out the most important predictors. Variable importance was also consistent across different numbers of trees. 
 
 If we were to engage in sophomoric psychology, we would find these correspond rather well to Maslow's Hierarchy of needs. \footnote{Maslow, A (1954). Motivation and personality. New York, NY: Harper.} The most important need is that of corporeal safety, i.e., safety in one's body. Following that economic safety, the ability to earn enough money to support one's self. Then moving on to the ability to find aid in times of trouble, and at last being free to choose how one uses their life. 
 
@@ -339,7 +336,7 @@ If we were to engage in sophomoric psychology, we would find these correspond ra
 ```{r}
 support_MSE <- matrix(ncol = 2, nrow=its)
 colnames(support_MSE) <- c("Train", "Test")
-eps <- c(.001,.01,.1,.5,1)
+eps <- c(.0001,.005,.001,.01,.1,.5,1)
 
 #Try a radial SVM to start, look at others during hyperparameter optimization
 #Radial kernel overfits, try a different one. Linear fits better and doesn't overfit
@@ -368,18 +365,38 @@ for (j in 1:length(eps)){
 SVM_hyper <- data.frame(SVM_hyper, row.names= c("Mean MSE Train", "Mean MSE Test", "Mean MSE Sd Train", "Mean MSE Sd Test"))
 colnames(SVM_hyper) <- eps
 ```
-Two SVMs were fit to the data. The first was an SVM with radial kernel. This model was found to overfit the data and so was replaced with a model with linear kernel. This model did not overfit the data. `r its` 70/30 train/test splits were done to estimate the MSE and the $\sigma$ of the estimates. No hyperparameter optimization has as of yet been coded.
+Two SVMs were fit to the data. The first was an SVM with radial kernel. This model was found to overfit the data and so was replaced with a model with linear kernel. This model did not overfit the data. `r its` 70/30 train/test splits were done to estimate the MSE and the $\sigma$ of the estimates. Hyperparameter optimization was conduced on $\epsilon$, the insensitive-loss function. The following values were used for $\epsilon$: `r eps`
 
-The following results were found:
+
 ```{r}
 kable(SVM_hyper, caption="Support Vector Machine Results", booktabs=T)
 ```
 
+From the above table, the optimum $\epsilon$ is then .005. 
+
 \pagebreak
 
 ###Optimum Model
+```{r}
+#Create table of the MSE and sd of the optimal model from each algorithm
+optimums <- matrix(nrow=2, ncol=3)
+colnames(optimums) <- c("LASSO", "RF: 1000", "SVM: .005")
+rownames(optimums) <- c("MSE", "MSE Sd")
+optimums[,1] <- lasso_results[,2]
+optimums[,2] <- c(forest_hyper$`1000`[2], forest_hyper$`1000`[4])
+optimums[,3] <- c(SVM_hyper$`0.005`[2],SVM_hyper$`0.005`[4])
+kable(optimums, captions="Best Models", booktabs=T)
+```
 
+The results for the three different algorithms show that, first, none is significantly better than the rest at predicting national happiness, the best MSEs for each algorithm being close in value. However, the lowest value came from the LASSO. This model possessed the lowest MSE for the test data. 
 
 \pagebreak
 
 ##Conclusions
+Three main conclusions can be drawn the analysis performed in this report. These conclusions are: Health, Economy, and Family are the most important predictors of a nation's happiness, there exist a non-zero number of nations whose happiness does not follow the patterns seen in other nations, and the nations of the world can be divided into three groups in terms of the predictors identified in this report. These conclusions will be discussed. 
+
+As can be seen from the RF results, three predictors are far more important in modeling happiness than the others. Those three predictors, Health, Economy and Family, are disproportionately able to predict a nation's happiness. The reasons for this are many fold, though they can be explained in terms of basic human needs: happiness is impossible without health, economic stability, and the ability to recover from adversity. For these reasons it is not too surprising that these predictors have such greater importance in the model.
+
+There exist certain nations, identified by the bi-plot, whose happiness cannot be adequately explained in the same manner as other nations. Some of these nations, namely Somalia and Taiwan, need further study to determine why their happiness is where it is. In the case of Somalia further study is needed on the validity and accuracy of economic data from the country. For Taiwan further study is needed to determine why the country's happiness is so high given its high level of corruption.
+
+Lastly, the PCA, the K-Means Clustering, and the Bi-Plot, all showed that the nations of the world can be divided into 3 groups: the happy, the unhappy, and the ambivalent. This distinction conforms well to the developed, developing and underdeveloped tripartite in geopolitical theory. 
