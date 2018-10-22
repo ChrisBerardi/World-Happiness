@@ -24,12 +24,12 @@ These Happiness Reports are a result of global surveys conducted under the auspi
 \footnote {World Happiness Report, http://worldhappiness.report/faq/} 
 A number of different variables, along with happiness are included in the World Happiness Report. 
 \footnote{World Happiness Report 2017, http://worldhappiness.report/ed/2017/}
-For the purpose of this analysis, the following variables will be used as predictors for a country's happiness: Economy, Family, Health, Freedom, Generosity, Trust. 
+For the purpose of this analysis, the following variables will be used as predictors for a country's happiness: Economy, Family, Health, Freedom, Generosity, and Trust. 
 
 
 ###Variables
 Each variable will now be defined.
-\footnote{World Happiness Report Statistical Appendix, https://s3.amazonaws.com/happiness-report/2017/StatisticalAppendixWHR2017.pdf}
+\footnote{World Happiness Report Statistcal Appendix, https://s3.amazonaws.com/happiness-report/2017/StatisticalAppendixWHR2017.pdf}
 
 ####Happiness
 The target, happiness, is the national average of ranking, from 0 to 10, of how well a person believes their life is going, from the worst possible, to the best possible.
@@ -115,24 +115,23 @@ eigs <- pca$sdev^2
 prop <- eigs/sum(eigs)
 plot(prop, xlab="Number of Component", ylab="Proportion of Variance Explained") #So only 3 needed, now interpret
 ```
-The scree plot indicates that 3 principle components(PC) needs to be interpreted. The 1^st^ principle component is:
+The scree plot indicates that 3 principle components(PC) need to be interpreted. The 1^st^ principle component is:
 ```{r}
-kable(pca$loading[,1], caption="PC 1", booktabs=T)
+kable(pca$loading[,1], 'latex', caption="PC 1", booktabs=T) %>%
+  kable_styling(latex_options = "hold_position")
 ```
 
 This PC indicates a weighted average of the different predictors. This gives us no special insight into the relationship between the predictors. 
 
 \pagebreak
 
-The second and third PCs are:
 ```{r}
-kable(pca$loading[,2], caption="PC 2", booktabs=T) %>%
-  kable_styling(full_width= F, position="left")
-kable(pca$loading[,3], caption= "PC 3", booktabs=T) %>%
-  kable_styling(full_width= F, position="right")
+PC2_3 <- cbind(pca$loading[,2], pca$loading[,3])
+colnames(PC2_3) <- c("PC2", "PC3")
+kable(PC2_3, caption="PC 2 and 3", booktabs=T) 
 ```
 
-These PCs are much more interesting. The 2^nd^ PC is a contrast between economy, family and health on one hand and freedom, generosity and trust on the other. This can be interpreted as suggesting that there are two classes of predictors for this data, one I will call goodness of life predictors: economy, family and health, the other goodness of government: freedom, generosity and trust. The 3^rd^ PC moves generosity from the goodness of government to goodness of life predictors. The conclusions that can be drawn form this will be considered following bi-plot analysis.
+These two PCs are much more interesting. The 2^nd^ PC is a contrast between economy, family and health on one hand and freedom, generosity and trust on the other. This can be interpreted as suggesting that there are two classes of predictors for this data, one I will call goodness of life predictors: economy, family and health, the other goodness of government: freedom, generosity and trust. The 3^rd^ PC moves generosity from the goodness of government to goodness of life predictors. 
 
 \pagebreak
 
@@ -142,7 +141,7 @@ These PCs are much more interesting. The 2^nd^ PC is a contrast between economy,
 biplot(pca)
 ```
 To check the conclusions from the (PCA), a bi-plot was constructed. The bi-plot results are very similar to those seen from PCA, the goodness of life predictors are clustered, as are two of the goodness of government: trust, freedom. Generosity is now found on its own, which is consistent with its change from one contrast to the other seen in PCA.
-MORE
+
 
 ```{r}
 biplot(pca, xlabs=happy[,1])
@@ -153,13 +152,13 @@ A second bi-plot was constructed to determine which countries could be seen as o
 Myanmar is ranked low in term of happiness, 114 out of 155. Its outlier nature is due to its much higher then expected generosity score given its happiness-- it has the highest score. The most likely explanation for this discrepancy is the highly Therevadan Buddhist nature of the majority Bamar ethnic group who, by the definition of the predictor, must be very willing to donate to charity.
 
 ####Rwanda
-Rwanda is also ranked very low in terms of happiness, 151 out of 155. Its outlier nature is due to its very high trust score given its low happiness. This is most likely due to the after effects of the Rwandan genocide, and the extreme changes it brought to the Rwandan government, eliminating a large amount of the corruption endemic to the region.
+Rwanda is also ranked very low in terms of happiness, 151 out of 155. Its outlier nature is due to a very high trust score given its low happiness. This is most likely due to the after effects of the Rwandan genocide, and the extreme changes it brought to the Rwandan government, eliminating a large amount of the corruption endemic to the region.
 
 ####Somalia
 Somalia is ranked near the middle in terms of happiness, 93. However, Somalia's economy score is second to last, which would usually indicate an extremely low happiness rating. The reason for this difference is most likely the continued factional nature of the Somali state. It might also indicate a need to address the adequacy of economic indicators in Somalia, and leads to questions about their accuracy. 
 
 ####Greece
-Greece has a middling happiness level, ranked 87, which is in sharp contrast to its generosity, ranked last, which would usually indicate a much lower happiness. This is most likely a consequence of the continued financial instability of the country resulting a lack of willingness to give to charity when an individual is already experiencing a decline in living standards.
+Greece has a middling happiness level, ranked 87, which is in sharp contrast to its generosity, ranked last, which would usually indicate a much lower happiness. This is most likely a consequence of the continued financial instability of the country resulting in a lack of willingness to give to charity when an individual is already experiencing a decline in living standards.
 
 ####Lithuania
 Lithuania is ranked in the top third of countries, which is surprising give its low generosity score, only slightly higher than Greece's. This would normally indicate a much less happy nation. Lithuania, like Greece, also recently went through financial instability. For this reason its interpretation matches that of the Hellenic State.
@@ -206,21 +205,21 @@ PCs=cbind(pcc1,pcc2,pcc3, happy_k$cluster)
 cluster_1 <- PCs[PCs[,4]==1,]
 cluster_2 <- PCs[PCs[,4]==2,]
 cluster_3 <- PCs[PCs[,4]==3,]
-splt <- scatterplot3d(cluster_1[,1],cluster_1[,2],cluster_1[,3], xlab="PC1", ylab="PC2", zlab="PC3", color = "blue",
-                      xlim=c(-2.5,0),ylim=c(-1,1),zlim=c(.2,-.6))
+splt <- scatterplot3d(cluster_1[,1],y=cluster_1[,2],z=cluster_1[,3], xlab="PC1", ylab="PC2", zlab="PC3", color =   "blue",xlim=c(0,2.5),ylim=c(-.3,1),zlim=c(0,1))
 splt$points3d(cluster_2[,1],cluster_2[,2],cluster_2[,3], col="red")
 splt$points3d(cluster_3[,1],cluster_3[,2],cluster_3[,3], col="green")
 
 #Put the clusters in as a variable in a new data set to be used in visualizations in tableau
-country_clusters <- cbind(happy[,1], happy_k$cluster)
-colnames(country_clusters) <- c("Country","Cluster")
-write.csv(country_clusters, file="clusters2017.csv")
+#country_clusters <- cbind(happy[,1], happy_k$cluster)
+#colnames(country_clusters) <- c("Country","Cluster")
+#write.csv(country_clusters, file="clusters2017.csv")
 ```
 This division of the data into 3 parts is consistent with the results from PCA, HC also indicates there is some evidence in the data of a tripartite division in the world. For this reason, K-means clustering was done with a cluster number of 3. 
 
-The plot above shows the results of this clustering. Further visualization and interpretation of the cluster will done using Tableau
+The plot above shows the results of this clustering. Further visualization and interpretation of the cluster will done using Tableau.
 
 ![](clusters.png)
+
 This plot from Tableau shows a clear indication of the meaning of the 3 clusters identified above. One cluster corresponds to the highest rated countries (green), one the lowest (red), and one to everyone else (yellow). These results correspond, almost completely, with the current developed, developing and under developed nations of the world.
 
 \pagebreak
@@ -328,7 +327,7 @@ Furthermore, variable importance was extracted from the random forest model.
 
 It is clear from Table that Health, Economy, Family and Freedom, in that order play an important role in predicting happiness in a country. Generosity and Trust appear to lack much predictive power. Interpreting these results, the most important factor in predicting happiness is how long and healthy an individual is during their life. After that how wealthy, then how much support, then how free an individual is to make choices, round out the most important predictors. Variable importance was also consistent across different numbers of trees. 
 
-If we were to engage in sophomoric psychology, we would find these correspond rather well to Maslow's Hierarchy of needs. \footnote{Maslow, A (1954). Motivation and personality. New York, NY: Harper.} The most important need is that of corporeal safety, i.e., safety in one's body. Following that economic safety, the ability to earn enough money to support one's self. Then moving on to the ability to find aid in times of trouble, and at last being free to choose how one uses their life. 
+If we were to engage in sophomoric psychology, we would find these correspond rather well to Maslow's Hierarchy of needs. \footnote{Maslow, A (1954). Motivation and personality. New York, NY: Harper.} The most important need is that of corporeal safety, i.e., safety in one's body. Following that economic safety, the ability to earn enough money to support one's self. Then moving on to the ability to find aid in times of trouble, and at last, being free to choose how one uses their life. 
 
 \pagebreak
 
@@ -385,18 +384,18 @@ rownames(optimums) <- c("MSE", "MSE Sd")
 optimums[,1] <- lasso_results[,2]
 optimums[,2] <- c(forest_hyper$`1000`[2], forest_hyper$`1000`[4])
 optimums[,3] <- c(SVM_hyper$`0.005`[2],SVM_hyper$`0.005`[4])
-kable(optimums, captions="Best Models", booktabs=T)
+kable(optimums, caption="Best Models", booktabs=T)
 ```
 
-The results for the three different algorithms show that, first, none is significantly better than the rest at predicting national happiness, the best MSEs for each algorithm being close in value. However, the lowest value came from the LASSO. This model possessed the lowest MSE for the test data. 
+The results for the three different algorithms show that, first, none is significantly better than the rest at predicting national happiness. This can be seen from the best MSEs for each algorithm being close in value to all of the others. However, the lowest MSE was obtained with the LASSO, this model possessed the lowest MSE for the test data. For that reason any predictions should be done with the LASSO model.
 
 \pagebreak
 
 ##Conclusions
-Three main conclusions can be drawn the analysis performed in this report. These conclusions are: Health, Economy, and Family are the most important predictors of a nation's happiness, there exist a non-zero number of nations whose happiness does not follow the patterns seen in other nations, and the nations of the world can be divided into three groups in terms of the predictors identified in this report. These conclusions will be discussed. 
+Three main conclusions can be drawn the from analysis performed in this report. These conclusions are: Health, Economy, and Family are the most important predictors of a nation's happiness, there exist a non-zero number of nations whose happiness does not follow the patterns seen in other nations, and the nations of the world can be divided into three groups in terms of the predictors identified in this report. These conclusions will be discussed. 
 
 As can be seen from the RF results, three predictors are far more important in modeling happiness than the others. Those three predictors, Health, Economy and Family, are disproportionately able to predict a nation's happiness. The reasons for this are many fold, though they can be explained in terms of basic human needs: happiness is impossible without health, economic stability, and the ability to recover from adversity. For these reasons it is not too surprising that these predictors have such greater importance in the model.
 
 There exist certain nations, identified by the bi-plot, whose happiness cannot be adequately explained in the same manner as other nations. Some of these nations, namely Somalia and Taiwan, need further study to determine why their happiness is where it is. In the case of Somalia further study is needed on the validity and accuracy of economic data from the country. For Taiwan further study is needed to determine why the country's happiness is so high given its high level of corruption.
 
-Lastly, the PCA, the K-Means Clustering, and the Bi-Plot, all showed that the nations of the world can be divided into 3 groups: the happy, the unhappy, and the ambivalent. This distinction conforms well to the developed, developing and underdeveloped tripartite in geopolitical theory. 
+Lastly, the PCA, the K-Means Clustering, and the Bi-Plot, all showed that the nations of the world can be divided into 3 groups: the happy, the unhappy, and the ambivalent. This distinction conforms well to the developed (happy), developing (ambilvalent) and underdeveloped (unhappy) tripartite in geopolitical theory. 
